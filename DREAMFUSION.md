@@ -1,0 +1,11 @@
+- This paper proposes a technique to transfer pretrained 2D image-text diffusion models to 3D object synthesis, without any 3D data.
+- 3D generative models can be trained on explicit representations of structure like voxels and point clouds , but the 3D data needed is relatively scarce compared to plentiful 2D images. Hence, having a model that learns 3D using a 2D diffusion model sidesteps this issue.
+- Dream Fields another approach which uses frozen image-text joint embedding models from CLIP and an optimization-based approach to train NeRFs. This work showed that pretrained 2D image-text models may be used for 3D synthesis, though 3D objects produced by this approach tend to lack realism and accuracy. CLIP has been used to guide other approaches based on voxel grids and meshes, dreamfusion has adopted a similar approach to Dream Fields, but replace CLIP with a loss derived from distillation of a 2D diffusion model. Our loss is based on probabilty density distillation, minimizing the KL divergence between a family of Gaussian distribution with shared means based on the forward process of diffusion and the score functions learned by the pretrained diffusion model.
+- The resulting Score Distillation Sampling (SDS) method enables sampling via optimization in differentiable image parameterizations. By combining SDS with a NeRF variant tailored to this 3D generation task, DreamFusion generates high-fidelity coherent 3D objects and scenes for a diverse set of user-provided text prompts.
+- This uses a NeRF 360 backbone.
+- Data set : 
+	-  Since this technique generates a 3D mesh from 2D images, we can use a pretrained stable diffusion model to generate an image and feed it to the model to generate the 3D mesh.
+- Evaluation metric :
+	- Tested on R-Precision using CLIP color, B/32 Geo , CLIP color ,B/16 Geo, CLIP color, L/14  Geo
+- Final Thoughts : 
+	- Since appropriate 3D datasets are scarce, building upon dreamfusion to generate an environment with the subsequent object meshes might be worth considering.

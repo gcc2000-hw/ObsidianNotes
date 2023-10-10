@@ -1,0 +1,32 @@
+- This paper proposes a two step method to generate a 3D room from text prompts. They also allow for users to interact and change the furniture around as they wish to after the first step which generates a room layout.
+- This room layout is used to generate the room appearance which is then transformed into a 3D textured mesh through Panoramic Reconstruction
+- This approach allows users to interactively edit the scene layout to produce a custom 3D mesh.
+- Layout Generation Stage : 
+	- They use a holistic scene code to parametrize the indoor scene and design a diffusion model to learn its distribution. Once the holistic scene code is generated from text, they recover the room as a set of orientated bounding boxes of walls and objects. These bounding boxes can be interactively edited by users to adjust types, positions, or scales.
+	- Scene code definition :
+		- They've precisely defined the scene code as given a 3D scene S with m walls and n furniture items, we represent the scene layout as a holistic scene code x0 = {oi}^ N i=1, where N = m + n.
+		- object oj is encoded as a node with various attributes, i.e., center location li ∈ R 3 , size si ∈ R 3 , orientation ri ∈ R, class label ci ∈ R C . Each node is characterized by the concatenation of these attributes as oi = [ci , li , si , ri ].
+		- A scene layout is a point in R^N×D. The forward diffusion process is a discrete-time Markov chain in R ^N×D. The diffusion process gradually adds Gaussian noise to x0, until the resulting distribution is Gaussian, according to a pre-defined, linearly increased noise schedule β1, ..., βT
+		- $$ q(x_t | x_0) = \mathcal{N}\left(x_t; \sqrt{\bar{\alpha}_t} x_0, (1 - \sqrt{\bar{\alpha}_t})I\right) $$
+		- where αt := 1 − βt and α¯t := Qt r=1 αr define the noise level and decrease over the timestep t. A neural network is trained to reverse that process, by minimizing the denoising objective,
+		- $$ L = E_{x_{0,t,y,\epsilon}} \left[ \|\epsilon - \epsilon_{\theta}(x_t, t, y)\|^2 \right] $$
+		- where ϵθ is the noise estimator which aims to find the noise ϵ added into the input x0. Here, y is the text embedding of the input text prompts. The denoising network is a 1D UNet , with multiple self-attention and cross-attention layers designed for input text prompts. The denoising network ϵθ takes the scene code xt, text prompt y, and timestep t as input, and denoises them iteratively to get a clean scene code ˆx0. Then the ˆx0 is represented as a set of orientated bounding boxes of various semantic types to facilitate interactive editing.
+- Appearance Generation Stage  :
+	- They obtain an RGB panorama through a pre-trained latent diffusion model to represent the room texture where they project the bounding boxes in the layout obtained in the first step onto a semantic segmentation map that represents the layout.
+	- Then they fine tune a pretrained [[ControlNet]] model to generate an RGB panorama from the input layout panorama.
+	- From this a textured 3D mesh can be obtained by estimating the depth map of the generated panorama.
+	- Fine tuning of controlnet :
+		- Fine-tune ControlNet. ControlNet is a refined Stable Diffusion (Rombach et al., 2022) model conditioned on an extra 2D input. To condition ControlNet on the scene layout, we convert the bounding box representation into a 2D semantic layout panorama through equirectangular projection. In this way, we get a pair of RGB and semantic layout panoramic images for each scene. However, the pre-trained ControlNet-Segmentation (github, 2023) is designed for perspective images, and cannot be directly applied to panoramas. Thus, we fine-tune it with our pairwise RGB-Semantic layout panoramas on the Structured3D dataset Zheng et al. (2020). As the volume of Structured3D is limited, we apply several techniques during the fine-tuning to augment the training data, including standard left-right flipping, horizontal rotation, and Pano-Stretch (Sun et al., 2019).
+- Data set : 
+	- Structured3D  : consists of 3,500 houses with 21,773 rooms designed by professional artists. Photo-realistic rendered images, such as RGB panorama, semantic panorama, depth map, and normal map are provided in each room. Each room is also labeled with the room layout, represented by the intersection lines of walls, roofs, and floors. 3D bounding boxes of furniture items are provided but noisy. 
+- Evaluation metric :
+	- CLIP score  : CLIP score is **an established method to measure an image's proximity to a text**. You need indicators to measure the quality of an image to ensure it meets a text caption.
+	- IS score : The inception score (IS) is **a mathematical algorithm used to measure or determine the quality of images created by generative AI through a generative adversarial network (GAN)**.
+	- User Study : 
+		- Perceptual Quality (PQ) and 3D Structure Completeness (3DS) rated from 1 - 5.
+- Final Thoughts : 
+	-  This paper focuses on text to 3D mesh generation for Rooms, The method described above is precisely defined for rooms. Where a discretely defined Scene code and a dataset for 3D rooms defines the objects to be generated. In my opinion, we can tweak the Scene code listed above to create a Scene Code a something that would be akin to a game environment Here the Scene code S is defined as a tensor $$ x_0 \in \mathbb{R}^{N \times D} $$
+	- Where N = m + n , m walls and n furniture. This can be tweaked to incorporate only the objects within the environment.
+	- However, we cannot use this dataset as it would not be enough for a game environment.
+	- One interesting take away from this paper would be the evaluation metric, They use, the metrics defined above. These metrics are well defined and could be used for our project.
+	- This method too can be incorporated and tweaked to be viable for our project but finding the relevant dataset that provides RGB panorama, semantic panorama, depth map, and normal map for game environments is needed to be found.
